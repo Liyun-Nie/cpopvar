@@ -16,6 +16,8 @@
   ggpubr pairwise comparison panels instead of collapsing to a single plot.
 - Draws M02 single-factor overall p-values with annotate() because ggplot2 4.x
   leaves `stat_compare_means()` overall tests blank.
+- GitHub Actions checks use `--no-manual`; the PDF manual is validated on the
+  WSL XeLaTeX host. Plot-layout PNG size gates accept smaller Windows files.
 
 This four-component development version is not a stable release and must not be
 tagged or submitted to CRAN.

@@ -55,7 +55,8 @@ test_that("smart grid keeps all ggpubr comparison plots under ggplot2 4", {
   outfile <- tempfile(fileext = ".png")
   ggplot2::ggsave(outfile, arranged, width = 10, height = 8, dpi = 72)
   expect_true(file.exists(outfile))
-  expect_gt(file.info(outfile)$size, 20000)
+  # Windows GHA PNGs are smaller than Linux (~8 KB vs >20 KB); blank plots were ~6 KB.
+  expect_gt(file.info(outfile)$size, 7000)
 })
 
 test_that("single-factor overall p-value uses annotate so ggplot2 4 PDFs are not blank", {
@@ -80,5 +81,6 @@ test_that("single-factor overall p-value uses annotate so ggplot2 4 PDFs are not
 
   outfile <- tempfile(fileext = ".png")
   ggplot2::ggsave(outfile, p, width = 6, height = 4, dpi = 100)
-  expect_gt(file.info(outfile)$size, 8000)
+  # Windows GHA PNGs are smaller than Linux (~5 KB vs >8 KB); blank plots were ~3.5 KB.
+  expect_gt(file.info(outfile)$size, 4000)
 })
