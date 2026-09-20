@@ -1,0 +1,171 @@
+# Species Genome Regions Configuration Schema
+# This file defines the expected structure and validation rules for species genome configuration
+
+schema_version: "1.0.0"
+description: "Schema definition for species genome regions configuration"
+
+# Column definitions for CSV configuration file
+columns:
+  species:
+    type: character
+    required: true
+    description: "Species name in format Genus_species"
+    constraints:
+      - pattern: "^[A-Z][a-z]+_[a-z]+$"
+      - unique: true
+    example: "Glycine_max"
+
+  lsc_start:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Large Single Copy region start position"
+    constraints:
+      - min: 1
+      - when_not_na: true
+    example: 1
+
+  lsc_end:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Large Single Copy region end position"
+    constraints:
+      - greater_than: "lsc_start"
+      - when_not_na: true
+    example: 83179
+
+  ir_start:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Inverted Repeat region start position"
+    constraints:
+      - greater_than: "lsc_end"
+      - when_not_na: true
+    example: 83180
+
+  ir_end:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Inverted Repeat region end position"
+    constraints:
+      - greater_than: "ir_start"
+      - when_not_na: true
+    example: 108753
+
+  ssc_start:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Small Single Copy region start position"
+    constraints:
+      - greater_than: "ir_end"
+      - when_not_na: true
+    example: 108754
+
+  ssc_end:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Small Single Copy region end position"
+    constraints:
+      - greater_than: "ssc_start"
+      - when_not_na: true
+    example: 126649
+
+  total_length:
+    type: numeric
+    required: false  # Can be NA for special genomes
+    description: "Total genome length"
+    constraints:
+      - greater_than: "ssc_end"
+      - when_not_na: true
+    example: 152222
+
+  genome_structure_type:
+    type: character
+    required: true
+    description: "Type of genome structure"
+    constraints:
+      - enum: ["standard_quadripartite", "ir_lacking", "custom"]
+    example: "standard_quadripartite"
+
+  special_handling:
+    type: character
+    required: false
+    description: "Legacy field - use genome_structure_type instead"
+    constraints:
+      - enum: ["IR_lacking_genome", ""]
+    deprecated: true
+    example: "IR_lacking_genome"
+
+  notes:
+    type: character
+    required: false
+    description: "Additional notes about the species configuration"
+    example: "Standard chloroplast structure"
+
+# Validation rules
+validation_rules:
+  # Rule 1: For standard genomes, all region coordinates must be present
+  standard_genome_completeness:
+    condition: "genome_structure_type == 'standard_quadripartite'"
+    requirements:
+      - "!is.na(lsc_start) && !is.na(lsc_end)"
+      - "!is.na(ir_start) && !is.na(ir_end)"
+      - "!is.na(ssc_start) && !is.na(ssc_end)"
+      - "!is.na(total_length)"
+
+  # Rule 2: For IR-lacking genomes, region coordinates should be NA
+  ir_lacking_genome_structure:
+    condition: "genome_structure_type == 'ir_lacking'"
+    requirements:
+      - "is.na(ir_start) && is.na(ir_end)"
+      - "special_handling == 'IR_lacking_genome' || is.na(special_handling)"
+
+  # Rule 3: Region boundaries must be logical
+  region_boundary_logic:
+    condition: "genome_structure_type == 'standard_quadripartite'"
+    requirements:
+      - "lsc_end < ir_start"
+      - "ir_end < ssc_start"
+      - "ssc_end < total_length"
+      - "lsc_start == 1"  # Convention: genomes start at position 1
+
+  # Rule 4: No overlapping regions
+  no_region_overlap:
+    condition: "genome_structure_type == 'standard_quadripartite'"
+    requirements:
+      - "lsc_end + 1 == ir_start"
+      - "ir_end + 1 == ssc_start"
+
+# Expected genome structure types
+genome_structure_types:
+  standard_quadripartite:
+    description: "Standard chloroplast genome with LSC-IRA-SSC-IRB structure"
+    regions: ["LSC", "IR", "SSC"]
+    requires_coordinates: true
+    conversion_functions: ["convert_ira_to_irb"]
+
+  ir_lacking:
+    description: "Genomes that lack Inverted Repeat regions"
+    regions: ["whole_genome"]
+    requires_coordinates: false
+    conversion_functions: []
+    special_cases: ["Pisum_sativum"]
+
+  custom:
+    description: "Custom genome structures requiring specialized handling"
+    regions: ["variable"]
+    requires_coordinates: true
+    conversion_functions: ["custom_conversion"]
+
+# Migration information for legacy configurations
+legacy_migration:
+  from_special_handling:
+    "IR_lacking_genome": "ir_lacking"
+    "": "standard_quadripartite" # Handles both empty strings and NULL/NA cases
+
+# Quality assurance recommendations
+quality_assurance:
+  - "Always validate configuration after any changes"
+  - "Test coordinate conversion with known species"
+  - "Ensure total_length matches the actual genome assembly"
+  - "Verify region boundaries using genome browser visualization"
+  - "Cross-reference with published literature for validation"

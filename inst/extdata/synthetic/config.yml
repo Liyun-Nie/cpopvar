@@ -1,0 +1,100 @@
+# Synthetic two-species example shipped with cpopvar
+# Paths in this file are filenames only. Rewrite them to absolute paths
+# before calling run_analysis(), or run from this directory.
+
+session_info:
+  session_id: "synthetic_quickstart"
+  run_name: "cpopvar synthetic example"
+  description: "Tiny two-species plastome variant example for installation checks"
+
+input_files:
+  main_data: "main_data.csv"
+  annotations: "annotations.csv"
+  group_info: "group_info.csv"
+  genome_regions: "genome_regions.csv"
+  species_order: "species_order.csv"
+  gene_function_mapping: "gene_function_map.csv"
+
+column_mappings:
+  main_data:
+    sample_id: "sample_id"
+    species: "species"
+    position: "position"
+    var_type: "var_type"
+    gene: "gene"
+    region_type: "region_type"
+    ref_allele: "ref_allele"
+    alt_allele: "alt_allele"
+  genome_regions:
+    species: "species"
+    lsc_start: "lsc_start"
+    lsc_end: "lsc_end"
+    ir_start: "ir_start"
+    ir_end: "ir_end"
+    ssc_start: "ssc_start"
+    ssc_end: "ssc_end"
+    total_length: "total_length"
+    special_handling: "special_handling"
+
+analysis_tasks:
+  preprocessing:
+    enabled: true
+  filtering:
+    enabled: true
+    parameters:
+      thresholds:
+        snp: 3
+        INDEL: 3
+        complex: 3
+        mnp: 3
+  normalization:
+    enabled: true
+    parameters:
+      frequency_unit: 1000
+      rna_aggregation: true
+      generate_summary: true
+  M01_distribution:
+    enabled: false
+  M02_comparative:
+    enabled: false
+  M03_hotspot:
+    enabled: true
+    parameters:
+      data_scoping:
+        target_region_types: ["CDS"]
+        target_var_types: ["snp", "INDEL", "complex"]
+      frequency_percentile: 0.75
+      enrichment_analysis: false
+      pca_analysis: false
+  M04_igs_hotspot:
+    enabled: false
+  M05_hotspot_ideogram:
+    enabled: false
+
+visualization_settings:
+  theme: "publication"
+  color_system:
+    default_palette:
+      selected: "npg"
+    custom_palettes:
+      by_concept:
+        global_heatmap:
+          gradient: ["#FFFFBF", "#FF7F0E", "#EE0000"]
+        global_pca:
+          scree_bar: "#3C5488"
+          scree_line: "#E64B35"
+          loadings_points: "#4DBBD5"
+        upset:
+          sets_bar_color: "#2E86AB"
+          main_bar_color: "#F18F01"
+          matrix_dot_color: "#DC3545"
+        hotspot_correlation:
+          gradient: ["#2166AC", "#FFFFBF", "#D73027"]
+        M03_hotspot:
+          primary: "#E64B35"
+  output:
+    export_formats: []
+
+output_settings:
+  generate_report: false
+  save_intermediate: true

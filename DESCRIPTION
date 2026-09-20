@@ -1,0 +1,71 @@
+Package: cpopvar
+Title: Chloroplast Population Variation Analysis
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Liyun", "Nie",
+           role = c("aut", "cre"),
+           email = "nieliyun18@163.com",
+           comment = c(ORCID = "0000-0002-5288-0041"))
+    )
+Description: Configuration-driven tools for analysing chloroplast genome
+    population variation. The backend preprocesses and filters variant data,
+    normalises variant frequencies, and provides exploratory, comparative,
+    hotspot, enrichment, and plastome ideogram analyses. This development
+    candidate does not include the retired Shiny workbench.
+License: MIT + file LICENSE
+URL: https://github.com/Liyun-Nie/cpopvar
+BugReports: https://github.com/Liyun-Nie/cpopvar/issues
+Encoding: UTF-8
+Language: en-US
+Depends: R (>= 4.1.0)
+Imports:
+    car,
+    dplyr,
+    effsize,
+    FSA,
+    ggplot2,
+    ggrepel,
+    ggsci,
+    grDevices,
+    grid,
+    gridExtra,
+    igraph,
+    jsonlite,
+    magrittr,
+    patchwork,
+    pheatmap,
+    purrr,
+    readr,
+    RIdeogram,
+    rlang,
+    scales,
+    stats,
+    stringr,
+    tibble,
+    tidyr,
+    tools,
+    UpSetR,
+    utils,
+    yaml
+Suggests:
+    corrplot,
+    cowplot,
+    data.table,
+    diffdf,
+    GenomicRanges,
+    ggflowchart,
+    ggpubr,
+    gt,
+    here,
+    magick,
+    pdftools,
+    plotly,
+    png,
+    RColorBrewer,
+    rtracklayer,
+    testthat (>= 3.0.0),
+    viridis,
+    withr
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0

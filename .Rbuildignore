@@ -1,0 +1,12 @@
+^\.github$
+^\.gitignore$
+^app_data$
+^Rplots\.pdf$
+^.*\.Rproj$
+^\.Rproj\.user$
+^.*\.Rcheck$
+^cpopvar_.*\.tar\.gz$
+^CONTRIBUTING\.md$
+^CITATION\.cff$
+^LICENSE\.md$
+^cran-comments\.md$

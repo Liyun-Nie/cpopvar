@@ -1,0 +1,91 @@
+# =================================================================
+# cpopvar - Comparative Analysis Template
+# =================================================================
+# This template focuses on data distribution and comparative analysis
+# (M01 + M02 modules only) for efficient species and group comparisons.
+
+execution_mode: "full_analysis"
+
+session_info:
+  session_id: "comparative_analysis_template"
+  run_name: "Comparative Analysis"
+  description: "Data distribution and inter-group comparative analysis"
+
+workflow:
+  region_data_mode: "precomputed"
+  description: "Comparative analysis workflow focusing on distribution and group comparisons"
+
+input_files:
+  main_data: "data/input/main_data.csv"
+  cds_lengths: "data/input/cds_lengths.csv"
+  group_info: "data/input/group_info.csv"
+  region_info: "data/input/region_info.csv"
+
+column_mappings:
+  main_data:
+    sample_id: "V1"
+    species: "V2"
+    position: "V3"
+    var_type: "V4"
+    gene: "V14"
+    region_type: "V8"
+  cds_lengths:
+    gene: "gene"
+    length: "length"
+  region_info:
+    species: "species"
+    region_name: "Region_Name"
+    region_type: "Region_Type"
+    start_pos: "Start"
+    end_pos: "End"
+
+analysis_tasks:
+  core_preprocessing:
+    enabled: true
+    description: "Essential data preprocessing and validation"
+    
+  core_filtering:
+    enabled: true
+    description: "Variant filtering based on frequency thresholds"
+    parameters:
+      frequency_threshold: 0.1
+      
+  core_normalization:
+    enabled: true
+    description: "Frequency normalization and RNA category aggregation"
+    
+  M01_data_distribution:
+    enabled: true
+    description: "Data distribution visualization and statistics"
+    parameters:
+      data_scoping:
+        target_species: ["all"]
+        target_var_types: ["snp", "INDEL", "complex", "mnp"]
+        target_region_types: ["CDS", "IGS", "intron", "RNA"]
+      plot_types: ["density", "boxplot", "histogram", "pie_matrix"]
+      
+  M02_comparative_analysis:
+    enabled: true
+    description: "Inter-group and inter-species comparative analysis"
+    parameters:
+      data_scoping:
+        target_species: ["all"]
+        target_var_types: ["snp", "INDEL", "complex", "mnp"]
+        target_region_types: ["CDS", "IGS", "intron", "RNA"]
+      analysis_types: ["region_type", "var_type", "external_factors"]
+      statistical_tests: true
+      
+  M03_hotspot_analysis:
+    enabled: false
+    description: "Variant hotspot identification (disabled in comparative template)"
+
+visual_settings:
+  theme: "publication"
+  color_scheme: "viridis"
+  figure_resolution: 300
+  figure_format: ["png", "pdf"]
+
+output_settings:
+  generate_report: true
+  save_intermediate: false
+  debug_mode: false

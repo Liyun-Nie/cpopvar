@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: cpopvar
+message: >-
+  Please cite this software and the associated article when article metadata
+  becomes available.
+type: software
+authors:
+  - family-names: Nie
+    given-names: Liyun
+    orcid: https://orcid.org/0000-0002-5288-0041
+version: 0.0.0.9000
+license: MIT
+repository-code: https://github.com/Liyun-Nie/cpopvar
+url: https://github.com/Liyun-Nie/cpopvar
+abstract: >-
+  Configuration-driven R tools for chloroplast genome population-variation
+  analysis, including exploratory, comparative, hotspot, enrichment, and
+  plastome ideogram modules.

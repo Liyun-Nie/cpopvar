@@ -1,0 +1,8 @@
+bibentry(
+  bibtype = "Manual",
+  title = "cpopvar: Chloroplast Population Variation Analysis",
+  author = person("Liyun", "Nie"),
+  year = "2026",
+  note = paste("R package version", meta$Version),
+  url = "https://github.com/Liyun-Nie/cpopvar"
+)

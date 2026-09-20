@@ -1,0 +1,3 @@
+species,lsc_start,lsc_end,ir_start,ir_end,ssc_start,ssc_end,total_length,genome_structure_type,special_handling,notes
+Demo_alpha,1,2000,2001,2500,2501,3000,3500,standard_quadripartite,,synthetic example
+Demo_beta,1,2000,2001,2500,2501,3000,3500,standard_quadripartite,,synthetic example
