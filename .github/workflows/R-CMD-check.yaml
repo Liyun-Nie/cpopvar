@@ -30,11 +30,22 @@ jobs:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
       - uses: r-lib/actions/setup-pandoc@v2
+      # CRAN's macOS arm64 binary for ca 0.72 is not a valid archive
+      # for pak (`unknown archive type`). Force source; ca is pure R.
       - uses: r-lib/actions/setup-r-dependencies@v2
+        id: install-deps
+        continue-on-error: ${{ runner.os == 'macOS' }}
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: any::rcmdcheck, any::ca?source
           needs: check
-          cache-version: "2"
+          cache-version: "3"
+      - name: Fallback macOS install if pak cannot extract ca
+        if: runner.os == 'macOS' && steps.install-deps.outcome == 'failure'
+        run: |
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          install.packages("ca", type = "source")
+          pak::pkg_install(c("local::.", "any::rcmdcheck", "ca?source"), dependencies = TRUE)
+        shell: Rscript {0}
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--as-cran", "--no-manual")'
