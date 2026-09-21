@@ -1,6 +1,6 @@
-# cpopvar 0.0.0.9000
+# cpopvar 0.9.0
 
-## Development candidate
+## Backend beta pre-release
 
 - Starts the independent public-package version lineage from the internal
   backend-only V4 baseline.
@@ -31,6 +31,13 @@
 - Checks `magick` and `pdftools` before requested raster conversion and reports
   a structured PDF-only fallback instead of silently producing zero PNG files.
 - Records the actual PDF filenames in M01/M02 logs, summaries, and manifests.
+- Adds bilingual English and Simplified Chinese user guides covering scientific
+  questions, usage, pre-release installation, inputs, and a synthetic quick
+  start.
+- Documents clean local installation from a source archive with
+  `remotes::install_local(..., dependencies = NA, upgrade = "never")` and a
+  base-R fallback when hard dependencies are already installed.
+- Opens the intended PDF device before UpSetR construction so M01, M03, and
+  M04 plots write the named PDF once and do not create a default `Rplots.pdf`.
 
-This four-component development version is not a stable release and must not be
-tagged or submitted to CRAN.
+This backend beta is a GitHub Pre-release. It is not a CRAN release.

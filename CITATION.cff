@@ -8,7 +8,8 @@ authors:
   - family-names: Nie
     given-names: Liyun
     orcid: https://orcid.org/0000-0002-5288-0041
-version: 0.0.0.9000
+version: 0.9.0
+date-released: 2026-09-21
 license: MIT
 repository-code: https://github.com/Liyun-Nie/cpopvar
 url: https://github.com/Liyun-Nie/cpopvar
