@@ -158,7 +158,7 @@ generate_dual_enrichment_plots <- function(dual_enrichment_results,
     if ("core_shared" %in% names(plots) && "private" %in% names(plots)) {
       # Try to create combined plot if both are available
       if (requireNamespace("gridExtra", quietly = TRUE)) {
-        main_plot <- gridExtra::grid.arrange(
+        main_plot <- gridExtra::arrangeGrob(
           plots$core_shared, plots$private,
           nrow = 1, ncol = 2,
           top = "Functional Enrichment Analysis: Core Shared vs Private Hotspot Genes"

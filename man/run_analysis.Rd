@@ -4,18 +4,28 @@
 \alias{run_analysis}
 \title{Run cpopvar Analysis Pipeline}
 \usage{
-run_analysis(config_file, session_id = NULL, output_dir = getwd())
+run_analysis(
+  config = NULL,
+  session_id = NULL,
+  output_dir = getwd(),
+  config_file = NULL
+)
 }
 \arguments{
-\item{config_file}{Path to the YAML configuration file.}
+\item{config}{A YAML configuration file path or an in-memory config list.}
 
 \item{session_id}{Optional session identifier for tracking.}
 
 \item{output_dir}{Working directory for output. Defaults to current directory.}
+
+\item{config_file}{Backward-compatible alias for a YAML path. Do not supply
+both \code{config} and \code{config_file}.}
 }
 \value{
 Invisibly returns the path to the session output directory.
 }
 \description{
-Executes the complete back-end analysis pipeline using a configuration file.
+Executes the complete back-end analysis pipeline from a YAML configuration
+file or an in-memory config produced by \code{\link[=cpopvar_config]{cpopvar_config()}}. Both inputs
+pass through \code{\link[=validate_cpopvar_config]{validate_cpopvar_config()}} and the same parser/dispatcher.
 }

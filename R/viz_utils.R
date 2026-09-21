@@ -47,6 +47,62 @@ get_plot_dimensions <- function(config, width = NULL, height = NULL, dpi = NULL)
   )
 }
 
+#' Cross-platform PDF graphics device
+#'
+#' Use Cairo whenever it is available. The native Windows PDF device can
+#' silently omit text grobs from ggplot2/grid output under some R/ggplot2
+#' combinations, so it is retained only as an explicit last-resort fallback.
+#'
+#' @param filename Output PDF path.
+#' @param width Width in inches.
+#' @param height Height in inches.
+#' @param ... Additional graphics-device arguments.
+#' @return Invisibly returns the active graphics device number.
+#' @keywords internal
+cpopvar_pdf_device <- function(filename, width, height, ...) {
+  if (isTRUE(capabilities("cairo"))) {
+    grDevices::cairo_pdf(
+      filename = filename,
+      width = width,
+      height = height,
+      ...
+    )
+  } else {
+    warning(
+      paste0(
+        "Cairo PDF support is unavailable; falling back to the native PDF device. ",
+        "Text rendering may be incomplete on Windows."
+      ),
+      call. = FALSE
+    )
+    grDevices::pdf(
+      file = filename,
+      width = width,
+      height = height,
+      ...
+    )
+  }
+
+  invisible(grDevices::dev.cur())
+}
+
+#' Open the cross-platform PDF device for base/grid drawing
+#'
+#' @param file Output PDF path.
+#' @param width Width in inches.
+#' @param height Height in inches.
+#' @param ... Additional graphics-device arguments.
+#' @return Invisibly returns the active graphics device number.
+#' @keywords internal
+open_cpopvar_pdf <- function(file, width, height, ...) {
+  cpopvar_pdf_device(
+    filename = file,
+    width = width,
+    height = height,
+    ...
+  )
+}
+
 #' Unified vectorized plot saving function
 #' 
 #' This is the single entry point for all plot saving in the system.
@@ -107,6 +163,7 @@ save_plot <- function(plot_object, base_path, config,
     dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   }
   
+  device_before_save <- grDevices::dev.cur()
   tryCatch({
     
     # Detect plot type and handle appropriately
@@ -119,13 +176,13 @@ save_plot <- function(plot_object, base_path, config,
         plot = plot_object,
         width = default_width,
         height = default_height,
-        device = "pdf",
+        device = cpopvar_pdf_device,
         units = "in"
       )
       
     } else if ("pheatmap" %in% plot_class) {
       # Handle pheatmap objects - vectorized PDF output
-      grDevices::pdf(
+      open_cpopvar_pdf(
         file = file_path,
         width = default_width,
         height = default_height
@@ -135,7 +192,7 @@ save_plot <- function(plot_object, base_path, config,
       
     } else if (any(c("recordedplot", "grob", "gtable") %in% plot_class)) {
       # Handle other grid/base graphics objects - vectorized PDF output
-      grDevices::pdf(
+      open_cpopvar_pdf(
         file = file_path,
         width = default_width,
         height = default_height
@@ -145,7 +202,7 @@ save_plot <- function(plot_object, base_path, config,
       
     } else {
       # Fallback: try to draw the object using grid - vectorized PDF output
-      grDevices::pdf(
+      open_cpopvar_pdf(
         file = file_path,
         width = default_width,
         height = default_height
@@ -167,9 +224,11 @@ save_plot <- function(plot_object, base_path, config,
     }
     
   }, error = function(e) {
-    # Ensure graphics device is closed on error
-    if (grDevices::dev.cur() > 1) {
-      grDevices::dev.off()
+    # Close only a device opened by this save attempt. Do not close the
+    # caller's RStudio or other interactive device after ggsave restores it.
+    current_device <- grDevices::dev.cur()
+    if (current_device > 1 && current_device != device_before_save) {
+      grDevices::dev.off(which = current_device)
     }
     
     warning(sprintf("Failed to save plot %s: %s", basename(file_path), e$message))
@@ -212,8 +271,24 @@ safe_save_plot <- function(plot, filename, output_dir, width = 10, height = 8, d
     file_path <- file.path(output_dir, filename)
     
     tryCatch({
-      ggplot2::ggsave(filename = file_path, plot = plot, 
-                      width = width, height = height, dpi = dpi)
+      if (identical(tolower(tools::file_ext(file_path)), "pdf")) {
+        ggplot2::ggsave(
+          filename = file_path,
+          plot = plot,
+          width = width,
+          height = height,
+          dpi = dpi,
+          device = cpopvar_pdf_device
+        )
+      } else {
+        ggplot2::ggsave(
+          filename = file_path,
+          plot = plot,
+          width = width,
+          height = height,
+          dpi = dpi
+        )
+      }
       
       cat("Plot saved:", file_path, "\n")
       return(file_path)

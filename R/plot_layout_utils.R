@@ -118,14 +118,14 @@ arrange_plots_smart_grid <- function(plot_list,
         common_title,
         gp = grid::gpar(fontsize = title_size, fontface = "bold")
       )
-      return(gridExtra::grid.arrange(
+      return(gridExtra::arrangeGrob(
         grobs = valid_plots,
         nrow = n_rows,
         ncol = n_cols,
         top = title_grob
       ))
     }
-    gridExtra::grid.arrange(
+    gridExtra::arrangeGrob(
       grobs = valid_plots,
       nrow = n_rows,
       ncol = n_cols

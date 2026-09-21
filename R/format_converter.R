@@ -13,6 +13,53 @@
 #
 ############################################################
 
+#' Check optional dependencies needed by requested plot conversions
+#'
+#' @param export_formats Character vector of requested export formats.
+#' @param package_available Function used to test package availability.
+#' @return List containing `ok`, `required`, `missing`, and `message`.
+#' @keywords internal
+check_plot_conversion_dependencies <- function(
+    export_formats,
+    package_available = function(package) {
+      requireNamespace(package, quietly = TRUE)
+    }) {
+  formats <- unique(tolower(as.character(export_formats)))
+  raster_formats <- intersect(formats, c("png", "jpg", "jpeg"))
+  required <- if (length(raster_formats) > 0) {
+    c("magick", "pdftools")
+  } else {
+    character(0)
+  }
+  missing <- required[!vapply(required, package_available, logical(1))]
+
+  if (length(missing) == 0) {
+    return(list(
+      ok = TRUE,
+      required = required,
+      missing = character(0),
+      message = NULL
+    ))
+  }
+
+  install_hint <- sprintf(
+    "install.packages(c(%s))",
+    paste(sprintf('"%s"', missing), collapse = ", ")
+  )
+  list(
+    ok = FALSE,
+    required = required,
+    missing = missing,
+    message = paste0(
+      "Plot conversion cannot start because optional package(s) are missing: ",
+      paste(missing, collapse = ", "),
+      ". Install them in the R library used to run cpopvar with ",
+      install_hint,
+      ". PDF plots were preserved and no raster conversion was attempted."
+    )
+  )
+}
+
 #' Convert PDF plots to additional formats
 #' 
 #' Batch conversion of PDF plots to PNG or other formats
@@ -30,25 +77,33 @@ convert_plots_for_reporting <- function(plots_dir, config, session_id = NULL) {
   
   # Extract configuration
   viz_config <- config$visualization_settings$output %||% list()
-  export_formats <- viz_config$export_formats %||% character(0)
+  export_formats <- unique(tolower(
+    as.character(viz_config$export_formats %||% character(0))
+  ))
   
   # Check if conversion is needed
   if (length(export_formats) == 0) {
     log_message("No additional export formats specified, skipping conversion")
     return(list(
       success = TRUE,
-      converted_count = 0,
+      total_converted = 0,
+      total_failed = 0,
       message = "No conversion needed"
     ))
   }
 
-  if (!requireNamespace("magick", quietly = TRUE)) {
-    stop(
-      "The optional package 'magick' is required for PDF raster conversion.",
-      call. = FALSE
-    )
+  dependency_check <- check_plot_conversion_dependencies(export_formats)
+  if (!dependency_check$ok) {
+    log_message(dependency_check$message, level = "error")
+    return(list(
+      success = FALSE,
+      total_converted = 0,
+      total_failed = 0,
+      missing_packages = dependency_check$missing,
+      error = dependency_check$message
+    ))
   }
-  
+
   log_message(sprintf("Export formats: %s", paste(export_formats, collapse = ", ")))
   
   # Find all PDF files
@@ -56,6 +111,8 @@ convert_plots_for_reporting <- function(plots_dir, config, session_id = NULL) {
     log_message(sprintf("Plots directory not found: %s", plots_dir), level = "warning")
     return(list(
       success = FALSE,
+      total_converted = 0,
+      total_failed = 0,
       error = "Plots directory not found"
     ))
   }
@@ -67,7 +124,8 @@ convert_plots_for_reporting <- function(plots_dir, config, session_id = NULL) {
     log_message("No PDF files found for conversion")
     return(list(
       success = TRUE,
-      converted_count = 0,
+      total_converted = 0,
+      total_failed = 0,
       message = "No PDF files to convert"
     ))
   }
@@ -98,10 +156,15 @@ convert_plots_for_reporting <- function(plots_dir, config, session_id = NULL) {
   log_message(sprintf("Conversion complete: %d files converted, %d failed", 
                      total_converted, total_failed))
   
+  conversion_success <- total_failed == 0
   return(list(
-    success = TRUE,
+    success = conversion_success,
     total_converted = total_converted,
     total_failed = total_failed,
+    error = if (conversion_success) NULL else sprintf(
+      "%d plot conversion(s) failed. See the session log for details.",
+      total_failed
+    ),
     by_format = conversion_results
   ))
 }

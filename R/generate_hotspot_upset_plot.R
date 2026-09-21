@@ -7,14 +7,22 @@
 #' @param config Configuration object
 #' @param task_params Task-specific parameters
 #' @param feature_col Name of the feature column to use for grouping 
-#'   (default: "gene" for M03, use "poiGS_ID" for M05)
+#'   (default: "gene" for M03, use "poiGS_ID" for M04)
+#' @param output_path Optional PDF path. When provided, the plot is drawn once
+#'   to this file; UpSetR construction is performed after the intended device
+#'   is already open so the default `Rplots.pdf` device is never created.
+#' @param width PDF width in inches when `output_path` is provided (default 14)
+#' @param height PDF height in inches when `output_path` is provided (default 10)
 #' @return List containing UpSet plot and intersection data
 #' @importFrom rlang sym
 #' @importFrom tibble column_to_rownames
 #' @importFrom dplyr rowwise
 #' @export
 generate_hotspot_upset_plot <- function(candidate_hotspots, config, task_params = NULL, 
-                                       feature_col = "gene") {
+                                       feature_col = "gene",
+                                       output_path = NULL,
+                                       width = 14,
+                                       height = 10) {
   
   # Load required package for UpSet plot generation
   if (!requireNamespace("UpSetR", quietly = TRUE)) {
@@ -41,7 +49,7 @@ generate_hotspot_upset_plot <- function(candidate_hotspots, config, task_params 
     top_genes_per_species <- get_task_parameter(task_params, config, "top_genes_per_species", 10)
     min_degree <- get_task_parameter(task_params, config, "min_degree", 3)
     
-    # Use parameterized feature column (gene for M03, poiGS_ID for M05)
+    # Use parameterized feature column (gene for M03, poiGS_ID for M04)
     gene_col <- feature_col
     species_col <- "species"
     
@@ -236,23 +244,53 @@ generate_hotspot_upset_plot <- function(candidate_hotspots, config, task_params 
     
     log_message(sprintf("UpSetR sets parameter will be: %s", paste(reversed_species, collapse = ", ")))
     
-    # Create UpSet plot with forced species order
-    # Use sets parameter to force the order of species on the left side
-    upset_plot <- UpSetR::upset(
-      upset_df,
-      nsets = ncol(upset_df),
-      nintersects = NA,  # Show ALL intersections (no limit) - ensures all patterns are visible
-      order.by = "freq",  # Order by intersection size (number of features) - bars sorted by height for readability
-      decreasing = TRUE,  # Show largest intersections first (tallest bars first)
-      sets = reversed_species,  # Use verified, non-empty character vector
-      sets.bar.color = plot_colors[["sets_bar_color"]],
-      main.bar.color = plot_colors[["main_bar_color"]],
-      matrix.color = plot_colors[["matrix_dot_color"]],
-      sets.x.label = "Number of Hotspot Genes per Species",
-      mainbar.y.label = "Number of Shared Hotspot Genes",
-      text.scale = c(1.3, 1.3, 1, 1, 2, 1.3),
-      keep.order = TRUE  # Try to maintain the order
-    )
+    # UpSetR ggplot/grid construction opens the default PDF device when none is
+    # active, which writes a blank Rplots.pdf. Open the intended (or a null)
+    # device first, print once onto that page, and close only the device we own.
+    device_before <- grDevices::dev.cur()
+    opened_device <- NULL
+    draw_to_file <- !is.null(output_path) && nzchar(output_path[[1]])
+
+    upset_plot <- tryCatch({
+      if (isTRUE(draw_to_file)) {
+        output_dir <- dirname(output_path)
+        if (!dir.exists(output_dir)) {
+          dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
+        open_cpopvar_pdf(file = output_path, width = width, height = height)
+      } else {
+        grDevices::pdf(file = NULL)
+      }
+      opened_device <- grDevices::dev.cur()
+
+      plot_obj <- suppressWarnings(UpSetR::upset(
+        upset_df,
+        nsets = ncol(upset_df),
+        nintersects = NA,  # Show ALL intersections (no limit) - ensures all patterns are visible
+        order.by = "freq",  # Order by intersection size (number of features) - bars sorted by height for readability
+        decreasing = TRUE,  # Show largest intersections first (tallest bars first)
+        sets = reversed_species,  # Use verified, non-empty character vector
+        sets.bar.color = plot_colors[["sets_bar_color"]],
+        main.bar.color = plot_colors[["main_bar_color"]],
+        matrix.color = plot_colors[["matrix_dot_color"]],
+        sets.x.label = "Number of Hotspot Genes per Species",
+        mainbar.y.label = "Number of Shared Hotspot Genes",
+        text.scale = c(1.3, 1.3, 1, 1, 2, 1.3),
+        keep.order = TRUE  # Try to maintain the order
+      ))
+      if (isTRUE(draw_to_file)) {
+        print(plot_obj, newpage = FALSE)
+      }
+      plot_obj
+    }, finally = {
+      open_devices <- grDevices::dev.list()
+      if (!is.null(opened_device) &&
+          !is.null(open_devices) &&
+          opened_device %in% open_devices &&
+          opened_device != device_before) {
+        grDevices::dev.off(which = opened_device)
+      }
+    })
     
     # Calculate sharing statistics using robust base R approach
     # Using rowSums instead of c_across for better reliability with numeric matrices

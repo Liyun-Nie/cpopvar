@@ -10,3 +10,4 @@
 ^CITATION\.cff$
 ^LICENSE\.md$
 ^cran-comments\.md$
+^man/figures/cpopvar_workflow

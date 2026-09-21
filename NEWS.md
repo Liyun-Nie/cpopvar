@@ -18,6 +18,19 @@
   leaves `stat_compare_means()` overall tests blank.
 - GitHub Actions checks use `--no-manual`; the PDF manual is validated on the
   WSL XeLaTeX host. Plot-layout PNG size gates accept smaller Windows files.
+- Treats DESCRIPTION `Version:` as the single maintained version source and
+  checks NEWS, CITATION, NAMESPACE imports, and tarball naming against it.
+- Adds the public configuration helpers `cpopvar_config()` and
+  `validate_cpopvar_config()`. `run_analysis()` accepts a YAML path or an
+  in-memory config and sends both through the same validator, parser, and
+  dispatcher.
+- Uses the Cairo PDF device when available so Windows R does not silently drop
+  plot titles, axes, legends, annotations, or composite panels.
+- Builds grid composites without drawing to an ambient graphics device, then
+  renders them through the same cross-platform PDF path.
+- Checks `magick` and `pdftools` before requested raster conversion and reports
+  a structured PDF-only fallback instead of silently producing zero PNG files.
+- Records the actual PDF filenames in M01/M02 logs, summaries, and manifests.
 
 This four-component development version is not a stable release and must not be
 tagged or submitted to CRAN.

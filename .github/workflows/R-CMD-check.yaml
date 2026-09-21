@@ -29,6 +29,9 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: ${{ runner.os != 'macOS' }}
+      - name: Version consistency
+        run: Rscript tools/check_version_consistency.R
+        shell: bash
       - uses: r-lib/actions/setup-pandoc@v2
       - uses: r-lib/actions/setup-r-dependencies@v2
         if: runner.os != 'macOS'

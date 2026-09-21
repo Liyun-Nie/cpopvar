@@ -505,7 +505,7 @@ generate_global_pca_plot <- function(global_heatmap_result = NULL,
         if (all(c(plot1_name, plot2_name, plot3_name) %in% names(group_plots))) {
           composite_name <- sprintf("combined_%s", group_var)
           
-          composite_plots[[composite_name]] <- gridExtra::grid.arrange(
+          composite_plots[[composite_name]] <- gridExtra::arrangeGrob(
             group_plots[[plot1_name]], 
             group_plots[[plot2_name]], 
             group_plots[[plot3_name]],
@@ -520,7 +520,7 @@ generate_global_pca_plot <- function(global_heatmap_result = NULL,
       }
       
       # Loadings composite plot: PC1vsPC2, PC1vsPC3, PC2vsPC3
-      composite_plots[["combined_loadings"]] <- gridExtra::grid.arrange(
+      composite_plots[["combined_loadings"]] <- gridExtra::arrangeGrob(
         loadings_plot_12, loadings_plot_13, loadings_plot_23,
         nrow = 1, ncol = 3,
         top = "Gene Loadings Analysis: PC Component Contributions"

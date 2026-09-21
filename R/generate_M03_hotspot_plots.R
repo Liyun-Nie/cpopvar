@@ -263,11 +263,14 @@ generate_M03_hotspot_plots <- function(normalized_data,
     # Step 2a: Generate Enhanced UpSet Plot with proper species ordering
     if ("upset" %in% plot_types) {
       log_message("M03 Step 2a: Generating enhanced UpSet plot with phylogenetic ordering")
+      plot_filename <- "M03_candidate_upset.pdf"
+      plot_path <- file.path(task_output_dir, plot_filename)
       upset_result <- tryCatch({
         generate_hotspot_upset_plot(
           candidate_hotspots,
           config = config,
-          task_params = task_params
+          task_params = task_params,
+          output_path = plot_path
         )
       }, error = function(e) {
         log_message(sprintf("ERROR in upset plot generation: %s", e$message), level = "error")
@@ -275,25 +278,9 @@ generate_M03_hotspot_plots <- function(normalized_data,
       })
       
       if (!is.null(upset_result) && !is.null(upset_result$plot)) {
-        plot_filename <- "M03_candidate_upset.pdf"
-        plot_path <- file.path(task_output_dir, plot_filename)
-        
-        # UpSetR special handling - direct PDF device approach
-        tryCatch({
-          # Get unified quality standards from config
-          viz_config <- config$visualization_settings$theme_and_sizing
-          width <- 14  # UpSet plot specific dimensions
-          height <- 10
-          
-          # Direct PDF device for UpSetR special case
-          grDevices::pdf(file = plot_path, width = width, height = height)
-          print(upset_result$plot)  # UpSetR objects need print() not grid.draw()
-          grDevices::dev.off()
-          
-          log_message(sprintf("[SUCCESS] Saved UpSet plot using direct PDF device: %s", basename(plot_path)))
-        }, error = function(e) {
-          log_message(sprintf("ERROR saving upset plot: %s", e$message), level = "error")
-        })
+        if (file.exists(plot_path)) {
+          log_message(sprintf("[SUCCESS] Saved UpSet plot using cross-platform PDF device: %s", basename(plot_path)))
+        }
         
         # Save UpSet intersection data to CSV for user reference
         if (!is.null(upset_result$intersection_data)) {

@@ -502,12 +502,14 @@ run_m04_igs_analysis <- function(normalized_data,
     if ("upset" %in% plot_types) {
       log_message("M04 Step 4c: Generating UpSet plot for poiGS hotspot sharing patterns")
       
+      upset_plot_file <- file.path(m04_output_dir, "M04_candidate_upset.pdf")
       upset_plot_result <- tryCatch({
         generate_hotspot_upset_plot(
           candidate_hotspots = candidate_hotspot_data,
           config = config,
           task_params = hotspot_params,
-          feature_col = "poiGS_ID"  # Use poiGS_ID for M04
+          feature_col = "poiGS_ID",  # Use poiGS_ID for M04
+          output_path = upset_plot_file
         )
       }, error = function(e) {
         log_message(sprintf("Failed to generate UpSet plot: %s", e$message), level = "warning")
@@ -515,12 +517,6 @@ run_m04_igs_analysis <- function(normalized_data,
       })
       
       if (!is.null(upset_plot_result)) {
-        # Save UpSet plot
-        upset_plot_file <- file.path(m04_output_dir, "M04_candidate_upset.pdf")
-        pdf(upset_plot_file, width = 14, height = 10)
-        print(upset_plot_result$plot)
-        dev.off()
-        
         # Save intersection data
         upset_csv_file <- file.path(m04_output_dir, "M04_upset_intersections.csv")
         write.csv(upset_plot_result$intersection_data, upset_csv_file, row.names = FALSE)

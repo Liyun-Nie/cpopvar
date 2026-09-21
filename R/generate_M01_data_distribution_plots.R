@@ -111,7 +111,7 @@ generate_M01_data_distribution_plots <- function(pie_data,
     
     if (!is.null(plot_result)) {
       # Save plot with task-specific naming
-      plot_filename <- sprintf("%s_%s.png", task_name %||% "M01_distribution", plot_type)
+      plot_filename <- sprintf("%s_%s.pdf", task_name %||% "M01_distribution", plot_type)
       plot_path <- file.path(task_output_dir, plot_filename)
       
       # Use appropriate dimensions for different plot types
@@ -132,16 +132,21 @@ generate_M01_data_distribution_plots <- function(pie_data,
         plot_base_path <- tools::file_path_sans_ext(plot_path)
         saved_path <- save_plot(plot_result$plot, plot_base_path, config)
       }
+
+      if (is.null(saved_path)) {
+        warning(sprintf("Failed to save %s plot", plot_type))
+        next
+      }
       
       results[[plot_type]] <- list(
         plot = plot_result$plot,
         data = plot_result$data,
-        file_path = saved_path %||% plot_path,
+        file_path = saved_path,
         metadata = plot_result$metadata
       )
       plots_generated <- c(plots_generated, plot_type)
       
-      log_message(sprintf("Saved %s plot: %s", plot_type, plot_path))
+      log_message(sprintf("Saved %s plot: %s", plot_type, saved_path))
     }
   }
   

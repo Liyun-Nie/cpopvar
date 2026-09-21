@@ -116,7 +116,8 @@ generate_correlation_heatmap <- function(correlation_results, output_file, confi
     plot = p,
     width = 8,
     height = max(6, nrow(plot_data) * 0.3),
-    dpi = 300
+    dpi = 300,
+    device = cpopvar_pdf_device
   )
   
   log_message(sprintf("Saved correlation heatmap: %s", basename(output_file)))
@@ -199,7 +200,11 @@ generate_poigs_gene_regression_plot <- function(merged_data, correlation_results
       axis.title = ggplot2::element_text(face = "bold")
     )
   
-  ggplot2::ggsave(output_file, p, width = 10, height = 8, dpi = 300)
+  ggplot2::ggsave(
+    output_file, p,
+    width = 10, height = 8, dpi = 300,
+    device = cpopvar_pdf_device
+  )
   log_message(sprintf("Saved regression plot: %s", basename(output_file)))
   log_message(sprintf("  - Overall Pearson r = %.3f (p = %.2e)", 
                      overall_cor_pearson$estimate, overall_cor_pearson$p.value))

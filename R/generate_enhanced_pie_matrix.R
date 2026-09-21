@@ -289,7 +289,7 @@ generate_enhanced_pie_matrix <- function(data, config, task_params) {
     pie_grob$widths[pie_panel_cols] <- bar_grob$widths[bar_panel_cols]
 
     # Combine the now perfectly aligned grobs
-    combined_plot <- gridExtra::grid.arrange(
+    combined_plot <- gridExtra::arrangeGrob(
       pie_grob, 
       bar_grob, 
       ncol = 1, 

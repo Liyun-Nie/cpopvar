@@ -38,6 +38,8 @@ run_m02_comparative <- function(normalized_data,
   
   # Initialize composite_plots to ensure variable exists in all code paths
   composite_plots <- list()
+  single_composite_file <- NULL
+  dual_composite_file <- NULL
   
   # Detect the analysis mode from the configured factors
   # Determine analysis mode: explicit setting or auto-detect
@@ -666,7 +668,14 @@ run_m02_comparative <- function(normalized_data,
           width = 16,
           height = 12
         )
-        log_message(sprintf("[SUCCESS] Single factor composite: composite_single_factor.png"))
+        if (is.null(saved_path)) {
+          stop("save_plot() did not create the single-factor composite PDF")
+        }
+        single_composite_file <- saved_path
+        log_message(sprintf(
+          "[SUCCESS] Single factor composite: %s",
+          basename(saved_path)
+        ))
       }, error = function(e) {
         log_message(sprintf("[ERROR] Failed composite plot: %s", e$message), level = "error")
       })
@@ -694,7 +703,14 @@ run_m02_comparative <- function(normalized_data,
           width = 16,
           height = 12
         )
-        log_message(sprintf("[SUCCESS] Dual factor composite: composite_dual_factor.png"))
+        if (is.null(saved_path)) {
+          stop("save_plot() did not create the dual-factor composite PDF")
+        }
+        dual_composite_file <- saved_path
+        log_message(sprintf(
+          "[SUCCESS] Dual factor composite: %s",
+          basename(saved_path)
+        ))
       }, error = function(e) {
         log_message(sprintf("[ERROR] Failed composite plot: %s", e$message), level = "error")
       })
@@ -714,8 +730,8 @@ run_m02_comparative <- function(normalized_data,
       plot_result <- all_results[[plot_name]]
       
       # STEP 1: Flattened file naming convention
-      # Individual plots: M02_universal_analysis_plot_single_region_type.png, M02_universal_analysis_plot_dual_Phylogeny_var_type.png  
-      plot_filename <- paste0(task_name, "_plot_", plot_name, ".png")
+      # Individual plots are saved as the primary vector PDF format.
+      plot_filename <- paste0(task_name, "_plot_", plot_name, ".pdf")
       plot_filepath <- file.path(data_output_dir, plot_filename)
       
       # Save the plot directly to main task directory
@@ -729,7 +745,10 @@ run_m02_comparative <- function(normalized_data,
             width = 12,
             height = 8
           )
-          # Simplified logging
+          if (is.null(saved_path)) {
+            stop("save_plot() did not create the individual analysis PDF")
+          }
+          log_message(sprintf("[SUCCESS] Individual analysis plot: %s", basename(saved_path)))
         }, error = function(e) {
           log_message(sprintf("[ERROR] Failed to save %s: %s", plot_filename, e$message), level = "error")
         })
@@ -772,8 +791,8 @@ run_m02_comparative <- function(normalized_data,
     
     # STEP 3: Generate single run summary JSON
     run_summary$composite_plots <- list(
-      single_factor_composite = if(exists("single_composite_file") && file.exists(single_composite_file)) basename(single_composite_file) else NULL,
-      dual_factor_composite = if(exists("dual_composite_file") && file.exists(dual_composite_file)) basename(dual_composite_file) else NULL
+      single_factor_composite = if(!is.null(single_composite_file) && file.exists(single_composite_file)) basename(single_composite_file) else NULL,
+      dual_factor_composite = if(!is.null(dual_composite_file) && file.exists(dual_composite_file)) basename(dual_composite_file) else NULL
     )
     run_summary$reports <- list(
       single_factor_report = if(length(single_factor_reports) > 0) "_report_all_single_factor.txt" else NULL,
@@ -845,7 +864,7 @@ run_m02_comparative <- function(normalized_data,
   if (!is.null(composite_plots) && length(composite_plots) > 0) {
     for (composite_name in names(composite_plots)) {
       
-      if (composite_name == "single_factor_composite" && exists("single_composite_file") && file.exists(single_composite_file)) {
+      if (composite_name == "single_factor_composite" && !is.null(single_composite_file) && file.exists(single_composite_file)) {
         title <- get_standard_title("M02", "composite_plot", "single_factor_composite")
         caption <- get_standard_caption("M02", "composite_plot")
         
@@ -863,7 +882,7 @@ run_m02_comparative <- function(normalized_data,
         log_message(sprintf("[SUCCESS] Created manifest entry for single factor composite plot"))
       }
       
-      if (composite_name == "dual_factor_composite" && exists("dual_composite_file") && file.exists(dual_composite_file)) {
+      if (composite_name == "dual_factor_composite" && !is.null(dual_composite_file) && file.exists(dual_composite_file)) {
         title <- get_standard_title("M02", "composite_plot", "dual_factor_composite")
         caption <- get_standard_caption("M02", "composite_plot")
         
@@ -889,7 +908,7 @@ run_m02_comparative <- function(normalized_data,
       plot_result <- all_results[[plot_name]]
       
       # Reconstruct the file path from the saved naming convention
-      plot_filename <- paste0(task_name, "_plot_", plot_name, ".png")
+      plot_filename <- paste0(task_name, "_plot_", plot_name, ".pdf")
       plot_filepath <- file.path(data_output_dir, plot_filename)
       
       if (file.exists(plot_filepath)) {

@@ -1045,7 +1045,17 @@ execute_generate_report_task <- function(task_config, execution_context, paramet
       log_message(sprintf("Plot conversion completed: %d files converted", 
                          conversion_result$total_converted))
     } else {
-      log_message("Plot conversion failed, proceeding with PDF-only", level = "warning")
+      conversion_error <- conversion_result$error %||%
+        "Requested plot conversion failed."
+      log_message(
+        sprintf("[ERROR] Plot conversion failed: %s", conversion_error),
+        level = "error"
+      )
+      return(list(
+        success = FALSE,
+        error_message = conversion_error,
+        conversion = conversion_result
+      ))
     }
   } else {
     log_message("Plots directory not found, skipping format conversion", level = "warning")

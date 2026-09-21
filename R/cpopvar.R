@@ -5,37 +5,39 @@ NULL
 
 #' Run cpopvar Analysis Pipeline
 #'
-#' Executes the complete back-end analysis pipeline using a configuration file.
+#' Executes the complete back-end analysis pipeline from a YAML configuration
+#' file or an in-memory config produced by [cpopvar_config()]. Both inputs
+#' pass through [validate_cpopvar_config()] and the same parser/dispatcher.
 #'
-#' @param config_file Path to the YAML configuration file.
+#' @param config A YAML configuration file path or an in-memory config list.
 #' @param session_id Optional session identifier for tracking.
 #' @param output_dir Working directory for output. Defaults to current directory.
+#' @param config_file Backward-compatible alias for a YAML path. Do not supply
+#'   both `config` and `config_file`.
 #' @return Invisibly returns the path to the session output directory.
 #' @export
 #' @importFrom yaml read_yaml write_yaml
-run_analysis <- function(config_file, session_id = NULL, output_dir = getwd()) {
+run_analysis <- function(config = NULL, session_id = NULL, output_dir = getwd(), config_file = NULL) {
 
   # --- Step 1: Input validation and configuration loading ---
-  if (is.null(config_file) || !file.exists(config_file)) {
-    stop(paste("Configuration file not found:", config_file), call. = FALSE)
+  if (!is.null(config_file)) {
+    if (!is.null(config)) {
+      stop("Provide either `config` or `config_file`, not both.", call. = FALSE)
+    }
+    config <- config_file
   }
+  if (is.null(config)) {
+    stop("A configuration file path or in-memory config is required.", call. = FALSE)
+  }
+
+  loaded <- load_cpopvar_config_input(config)
+  validation <- validate_cpopvar_config(loaded$data, error = TRUE)
+  config_data <- unclass(validation$config)
 
   output_dir <- normalizePath(output_dir, mustWork = FALSE)
   previous_output_dir <- getOption("cpopvar.output_dir", NULL)
   options(cpopvar.output_dir = output_dir)
   on.exit(options(cpopvar.output_dir = previous_output_dir), add = TRUE)
-
-  # Note: Using null coalescing operator (%||%) exported from annotation_processing.R
-
-  # Load the raw config data to get the session_id
-  config_data <- yaml::read_yaml(config_file)
-
-  # V3.13: Inject config file path into config object for downstream access
-  config_file_absolute <- normalizePath(config_file, mustWork = TRUE)
-  if (is.null(config_data$session_info)) {
-    config_data$session_info <- list()
-  }
-  config_data$session_info$config_file_path <- config_file_absolute
 
   # Determine session_id: function parameter > config file > auto-generate
   session_id <- session_id %||% config_data$session_info$session_id %||% paste0("session_", format(Sys.time(), "%Y%m%d_%H%M%S"))
@@ -46,8 +48,21 @@ run_analysis <- function(config_file, session_id = NULL, output_dir = getwd()) {
   session_paths <- get_session_paths(session_id, create_dirs = TRUE, output_dir = output_dir)
   initialize_session_logging(session_id, output_dir = output_dir)
 
+  if (is.null(config_data$session_info)) {
+    config_data$session_info <- list()
+  }
+  if (is.null(loaded$source_path)) {
+    memory_config_file <- file.path(session_paths$results, "config_used.yml")
+    yaml::write_yaml(config_data, memory_config_file)
+    config_data$session_info$config_file_path <- normalizePath(memory_config_file, winslash = "/", mustWork = TRUE)
+    config_source_label <- "in-memory cpopvar_config"
+  } else {
+    config_data$session_info$config_file_path <- loaded$source_path
+    config_source_label <- loaded$source_path
+  }
+
   log_message("=== cpopvar R Package Analysis Run Initialized ===", session_id = session_id)
-  log_message(paste("Config file:", config_file), session_id = session_id)
+  log_message(paste("Config source:", config_source_label), session_id = session_id)
 
   # --- Step 3: Task configuration parsing ---
 
@@ -81,7 +96,8 @@ run_analysis <- function(config_file, session_id = NULL, output_dir = getwd()) {
   log_message("Analysis complete. Saving summary...", session_id = session_id)
   summary_data <- list(
     session_id = session_id,
-    config_file = config_file,
+    config_file = config_data$session_info$config_file_path,
+    config_source = config_source_label,
     execution_mode = "full_analysis",  # V3.16: Simplified configuration
     tasks_executed = names(analysis_results$task_results),
     end_time = Sys.time(),

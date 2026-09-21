@@ -652,7 +652,11 @@ run_m01_distribution <- function(pie_data,
                     legend.position = "bottom"
                   )
                 
-                ggplot2::ggsave(zero_plot_file, p_zero, width = 12, height = 6, device = "pdf")
+                ggplot2::ggsave(
+                  zero_plot_file, p_zero,
+                  width = 12, height = 6,
+                  device = cpopvar_pdf_device
+                )
                 log_message(sprintf("  - Saved: %s", basename(zero_plot_file)))
               }, error = function(e) {
                 warning(sprintf("Failed to generate zero pattern plot: %s", e$message))
@@ -756,15 +760,15 @@ run_m01_distribution <- function(pie_data,
                 
                 # Save 3 independent PDF files
                 ggplot2::ggsave(file.path(corr_output_dir, "M01_histogram_density_1_neither_zero.pdf"), 
-                               p1, width = 10, height = 6, device = "pdf")
+                               p1, width = 10, height = 6, device = cpopvar_pdf_device)
                 log_message("  - Saved: M01_histogram_density_1_neither_zero.pdf")
                 
                 ggplot2::ggsave(file.path(corr_output_dir, "M01_histogram_density_2_gene_only.pdf"), 
-                               p2, width = 10, height = 6, device = "pdf")
+                               p2, width = 10, height = 6, device = cpopvar_pdf_device)
                 log_message("  - Saved: M01_histogram_density_2_gene_only.pdf")
                 
                 ggplot2::ggsave(file.path(corr_output_dir, "M01_histogram_density_3_poigs_only.pdf"), 
-                               p3, width = 10, height = 6, device = "pdf")
+                               p3, width = 10, height = 6, device = cpopvar_pdf_device)
                 log_message("  - Saved: M01_histogram_density_3_poigs_only.pdf")
               }, error = function(e) {
                 warning(sprintf("Failed to generate histogram density plots: %s", e$message))

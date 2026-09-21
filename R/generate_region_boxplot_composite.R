@@ -157,8 +157,9 @@ generate_region_boxplot_composite <- function(data, config, task_params) {
       plot_list[[region]] <- panel_plot
     }
     
-    # Combine plots using gridExtra
-    combined_plot <- do.call(gridExtra::grid.arrange, c(plot_list, list(nrow = 1)))
+    # Build a grob without drawing to the ambient device. save_plot() owns the
+    # cross-platform PDF device and renders this object later.
+    combined_plot <- do.call(gridExtra::arrangeGrob, c(plot_list, list(nrow = 1)))
     
     # Calculate summary statistics
     summary_stats <- boxplot_data %>%

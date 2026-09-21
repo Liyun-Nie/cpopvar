@@ -8,7 +8,10 @@ generate_hotspot_upset_plot(
   candidate_hotspots,
   config,
   task_params = NULL,
-  feature_col = "gene"
+  feature_col = "gene",
+  output_path = NULL,
+  width = 14,
+  height = 10
 )
 }
 \arguments{
@@ -19,7 +22,15 @@ generate_hotspot_upset_plot(
 \item{task_params}{Task-specific parameters}
 
 \item{feature_col}{Name of the feature column to use for grouping
-(default: "gene" for M03, use "poiGS_ID" for M05)}
+(default: "gene" for M03, use "poiGS_ID" for M04)}
+
+\item{output_path}{Optional PDF path. When provided, the plot is drawn once
+to this file; UpSetR construction is performed after the intended device
+is already open so the default \code{Rplots.pdf} device is never created.}
+
+\item{width}{PDF width in inches when \code{output_path} is provided (default 14)}
+
+\item{height}{PDF height in inches when \code{output_path} is provided (default 10)}
 }
 \value{
 List containing UpSet plot and intersection data

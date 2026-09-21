@@ -76,7 +76,7 @@ generate_sn_ratio_barplot <- function(species_stats, output_file, config) {
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 10, height = 8, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 10, height = 8, device = cpopvar_pdf_device)
   
   return(invisible(NULL))
 }
@@ -116,7 +116,7 @@ generate_syn_vs_nonsyn_scatter <- function(species_stats, output_file, config) {
     ) +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 8, height = 7, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 8, height = 7, device = cpopvar_pdf_device)
   
   return(invisible(NULL))
 }
@@ -183,7 +183,7 @@ generate_site_type_composition_barplot <- function(site_classification, output_f
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 10, height = 8, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 10, height = 8, device = cpopvar_pdf_device)
   
   return(invisible(NULL))
 }
@@ -223,7 +223,11 @@ generate_snp_indel_count_barplot <- function(species_stats, output_file, config)
     ggplot2::theme_classic() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 6, dpi = 300)
+  ggplot2::ggsave(
+    output_file, p,
+    width = 12, height = 6, dpi = 300,
+    device = cpopvar_pdf_device
+  )
   
   return(output_file)
 }
@@ -254,7 +258,11 @@ generate_snp_indel_ratio_lineplot <- function(species_stats, output_file, config
     ggplot2::theme_classic() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1))
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 6, dpi = 300)
+  ggplot2::ggsave(
+    output_file, p,
+    width = 12, height = 6, dpi = 300,
+    device = cpopvar_pdf_device
+  )
   
   return(output_file)
 }
@@ -287,7 +295,11 @@ generate_indel_length_boxplot <- function(indel_data, output_file, config, min_i
     ggplot2::theme_classic() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 6, dpi = 300)
+  ggplot2::ggsave(
+    output_file, p,
+    width = 12, height = 6, dpi = 300,
+    device = cpopvar_pdf_device
+  )
   
   return(output_file)
 }
@@ -310,7 +322,11 @@ generate_indel_length_histogram <- function(indel_data, output_file, config, min
     ) +
     ggplot2::theme_classic()
   
-  ggplot2::ggsave(output_file, p, width = 10, height = 6, dpi = 300)
+  ggplot2::ggsave(
+    output_file, p,
+    width = 10, height = 6, dpi = 300,
+    device = cpopvar_pdf_device
+  )
   
   return(output_file)
 }
@@ -354,7 +370,11 @@ generate_indel_summary_comparison_plot <- function(species_stats_filtered, outpu
     ggplot2::theme_bw() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
   
-  ggplot2::ggsave(output_file, p, width = 14, height = 10, dpi = 300)
+  ggplot2::ggsave(
+    output_file, p,
+    width = 14, height = 10, dpi = 300,
+    device = cpopvar_pdf_device
+  )
   
   return(output_file)
 }
@@ -381,17 +401,39 @@ generate_shared_indel_upset_plot <- function(upset_matrix, output_file, config) 
   }
   
   upset_df <- as.data.frame(upset_matrix)
-  
-  pdf(output_file, width = 14, height = 8)
-  print(UpSetR::upset(upset_df, 
-                       nsets = ncol(upset_df),
-                       order.by = "freq",
-                       sets.bar.color = "#4575B4",
-                       mainbar.y.label = "Shared INDEL Sequences",
-                       sets.x.label = "Total Sequences per Species",
-                       sets = rev(colnames(upset_df)),
-                       keep.order = TRUE))
-  dev.off()
+
+  # UpSetR construction does not draw the finished plot. print.upset()
+  # defaults to newpage=TRUE, which leaves a blank first page on the
+  # already-open intended PDF. Open the intended device first, construct,
+  # then print once with newpage=FALSE. Close only the device we own.
+  device_before <- grDevices::dev.cur()
+  opened_device <- NULL
+  open_cpopvar_pdf(output_file, width = 14, height = 8)
+  opened_device <- grDevices::dev.cur()
+  tryCatch(
+    {
+      plot_obj <- UpSetR::upset(
+        upset_df,
+        nsets = ncol(upset_df),
+        order.by = "freq",
+        sets.bar.color = "#4575B4",
+        mainbar.y.label = "Shared INDEL Sequences",
+        sets.x.label = "Total Sequences per Species",
+        sets = rev(colnames(upset_df)),
+        keep.order = TRUE
+      )
+      print(plot_obj, newpage = FALSE)
+    },
+    finally = {
+      open_devices <- grDevices::dev.list()
+      if (!is.null(opened_device) &&
+          !is.null(open_devices) &&
+          opened_device %in% open_devices &&
+          opened_device != device_before) {
+        grDevices::dev.off(which = opened_device)
+      }
+    }
+  )
   
   return(output_file)
 }
@@ -405,14 +447,26 @@ generate_species_clustering_dendrogram <- function(hc, output_file, config) {
     return(NULL)
   }
   
-  pdf(output_file, width = 10, height = 8)
-  plot(hc, 
-       main = "Species Clustering Based on Shared INDEL Sequences (Jaccard Similarity)",
-       sub = "UPGMA clustering using Jaccard distance",
-       xlab = "Species",
-       ylab = "Jaccard Distance (1 - Similarity)",
-       cex = 0.8)
-  dev.off()
+  open_cpopvar_pdf(output_file, width = 10, height = 8)
+  opened_device <- grDevices::dev.cur()
+  tryCatch(
+    {
+      plot(
+        hc,
+        main = "Species Clustering Based on Shared INDEL Sequences (Jaccard Similarity)",
+        sub = "UPGMA clustering using Jaccard distance",
+        xlab = "Species",
+        ylab = "Jaccard Distance (1 - Similarity)",
+        cex = 0.8
+      )
+    },
+    finally = {
+      open_devices <- grDevices::dev.list()
+      if (!is.null(open_devices) && opened_device %in% open_devices) {
+        grDevices::dev.off(which = opened_device)
+      }
+    }
+  )
   
   return(output_file)
 }
@@ -461,7 +515,7 @@ generate_indel_length_histogram_filtered <- function(indel_data, output_file, co
     ) +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 14, height = 12, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 14, height = 12, device = cpopvar_pdf_device)
   
   return(invisible(NULL))
 }
@@ -548,7 +602,7 @@ generate_indel_length_boxplot_comparison <- function(species_stats_all, species_
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 10, height = 8, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 10, height = 8, device = cpopvar_pdf_device)
   
   return(invisible(NULL))
 }
@@ -649,7 +703,7 @@ generate_genome_region_sn_ratio_barplot <- function(region_stats, output_file, c
     }
   }
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved S/N ratio by genome region barplot to: %s", output_file))
   return(p)
@@ -730,7 +784,7 @@ generate_genome_region_site_type_composition <- function(region_stats, output_fi
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 14, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 12, height = 14, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved site type composition by genome region to: %s", output_file))
   return(p)
@@ -781,7 +835,7 @@ generate_genome_region_syn_vs_nonsyn_scatter <- function(region_stats, output_fi
     ) +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved syn vs nonsyn scatter by genome region to: %s", output_file))
   return(p)
@@ -851,7 +905,7 @@ generate_genome_region_snp_indel_ratio_plot <- function(region_stats, output_fil
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved SNP/INDEL ratio by genome region barplot to: %s", output_file))
   return(p)
@@ -924,7 +978,7 @@ generate_genome_region_snp_indel_count_barplot <- function(region_stats, output_
     ggplot2::theme_classic() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1))
   
-  ggplot2::ggsave(output_file, p, width = 14, height = 12, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 14, height = 12, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved SNP/INDEL count barplot by genome region to: %s", output_file))
   return(p)
@@ -1015,7 +1069,7 @@ generate_genome_region_site_type_composition <- function(region_stats, output_fi
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 16, height = 10, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 16, height = 10, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved site type composition by genome region to: %s", output_file))
   return(p)
@@ -1070,7 +1124,7 @@ generate_genome_region_syn_vs_nonsyn_scatter <- function(region_stats, output_fi
     get_application_theme(config) +
     ggplot2::theme(legend.position = "right")
   
-  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 12, height = 10, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved syn vs nonsyn scatter by genome region to: %s", output_file))
   return(p)
@@ -1132,7 +1186,7 @@ generate_genome_region_snp_indel_ratio_lineplot <- function(region_stats, output
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1)) +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 14, height = 8, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 14, height = 8, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved SNP/INDEL ratio lineplot by genome region to: %s", output_file))
   return(p)
@@ -1207,7 +1261,7 @@ generate_genome_region_snp_indel_count_barplot <- function(region_stats, output_
     ggplot2::coord_flip() +
     get_application_theme(config)
   
-  ggplot2::ggsave(output_file, p, width = 16, height = 10, device = "pdf")
+  ggplot2::ggsave(output_file, p, width = 16, height = 10, device = cpopvar_pdf_device)
   
   log_message(sprintf("Saved SNP/INDEL count barplot by genome region to: %s", output_file))
   return(p)
