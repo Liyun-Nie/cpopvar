@@ -50,11 +50,12 @@ get_plot_dimensions <- function(config, width = NULL, height = NULL, dpi = NULL)
 #' Cross-platform PDF graphics device
 #'
 #' Prefer Cairo when it can actually open. Some hosts (notably GitHub Actions
-#' macOS) report `capabilities("cairo") == TRUE` but still fail with
-#' `failed to load cairo DLL` when `cairo_pdf()` is called. In that case fall
-#' back to the native PDF device. The native Windows PDF device can silently
-#' omit text grobs under some R/ggplot2 combinations, so Cairo remains the
-#' preferred path when it opens successfully.
+#' macOS) report `capabilities("cairo") == TRUE` but `cairo_pdf()` only emits
+#' a warning such as `failed to load cairo DLL` and does not open a usable
+#' device. Catch those warnings (and hard errors), then fall back to the
+#' native PDF device. The native Windows PDF device can silently omit text
+#' grobs under some R/ggplot2 combinations, so Cairo remains the preferred
+#' path when it opens successfully.
 #'
 #' @param filename Output PDF path.
 #' @param width Width in inches.
@@ -67,12 +68,27 @@ cpopvar_pdf_device <- function(filename, width, height, ...) {
   if (isTRUE(capabilities("cairo"))) {
     cairo_opened <- isTRUE(tryCatch(
       {
-        grDevices::cairo_pdf(
-          filename = filename,
-          width = width,
-          height = height,
-          ...
+        withCallingHandlers(
+          {
+            grDevices::cairo_pdf(
+              filename = filename,
+              width = width,
+              height = height,
+              ...
+            )
+          },
+          warning = function(w) {
+            msg <- conditionMessage(w)
+            if (grepl("cairo|DLL", msg, ignore.case = TRUE)) {
+              tryInvokeRestart("muffleWarning")
+              stop(msg, call. = FALSE)
+            }
+          }
         )
+        # Refuse a silent no-op: device must actually advance past null device.
+        if (grDevices::dev.cur() <= 1L) {
+          stop("cairo_pdf() returned without opening a graphics device", call. = FALSE)
+        }
         TRUE
       },
       error = function(e) {
@@ -84,6 +100,10 @@ cpopvar_pdf_device <- function(filename, width, height, ...) {
           ),
           call. = FALSE
         )
+        # Close a half-opened Cairo device if one exists before native fallback.
+        if (grDevices::dev.cur() > 1L) {
+          try(grDevices::dev.off(), silent = TRUE)
+        }
         FALSE
       }
     ))

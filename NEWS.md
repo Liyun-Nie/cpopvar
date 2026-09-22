@@ -26,8 +26,9 @@
   dispatcher.
 - Uses the Cairo PDF device when available so Windows R does not silently drop
   plot titles, axes, legends, annotations, or composite panels. If Cairo is
-  advertised but fails to open (for example `failed to load cairo DLL` on some
-  macOS CI hosts), falls back to the native PDF device instead of aborting.
+  advertised but fails to open—including hosts that only warn with
+  `failed to load cairo DLL` instead of throwing an error (observed on GitHub
+  Actions macOS)—promotes that failure and falls back to the native PDF device.
 - Builds grid composites without drawing to an ambient graphics device, then
   renders them through the same cross-platform PDF path.
 - Checks `magick` and `pdftools` before requested raster conversion and reports
