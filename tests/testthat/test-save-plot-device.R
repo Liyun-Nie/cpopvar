@@ -34,8 +34,7 @@ test_that("save_plot preserves PDF text with the cross-platform device", {
 })
 
 test_that("base and grid callers can open the same PDF device", {
-  skip_if_not(capabilities("cairo"), "Cairo PDF support is unavailable")
-
+  # Device must open even when Cairo is advertised but fails to load (GHA macOS).
   output_file <- tempfile(fileext = ".pdf")
   cpopvar:::open_cpopvar_pdf(output_file, width = 4, height = 3)
   graphics::plot(1:3, main = "Base PDF probe")

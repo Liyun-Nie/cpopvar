@@ -49,9 +49,12 @@ get_plot_dimensions <- function(config, width = NULL, height = NULL, dpi = NULL)
 
 #' Cross-platform PDF graphics device
 #'
-#' Use Cairo whenever it is available. The native Windows PDF device can
-#' silently omit text grobs from ggplot2/grid output under some R/ggplot2
-#' combinations, so it is retained only as an explicit last-resort fallback.
+#' Prefer Cairo when it can actually open. Some hosts (notably GitHub Actions
+#' macOS) report `capabilities("cairo") == TRUE` but still fail with
+#' `failed to load cairo DLL` when `cairo_pdf()` is called. In that case fall
+#' back to the native PDF device. The native Windows PDF device can silently
+#' omit text grobs under some R/ggplot2 combinations, so Cairo remains the
+#' preferred path when it opens successfully.
 #'
 #' @param filename Output PDF path.
 #' @param width Width in inches.
@@ -60,21 +63,42 @@ get_plot_dimensions <- function(config, width = NULL, height = NULL, dpi = NULL)
 #' @return Invisibly returns the active graphics device number.
 #' @keywords internal
 cpopvar_pdf_device <- function(filename, width, height, ...) {
+  cairo_opened <- FALSE
   if (isTRUE(capabilities("cairo"))) {
-    grDevices::cairo_pdf(
-      filename = filename,
-      width = width,
-      height = height,
-      ...
-    )
-  } else {
-    warning(
-      paste0(
-        "Cairo PDF support is unavailable; falling back to the native PDF device. ",
-        "Text rendering may be incomplete on Windows."
-      ),
-      call. = FALSE
-    )
+    cairo_opened <- isTRUE(tryCatch(
+      {
+        grDevices::cairo_pdf(
+          filename = filename,
+          width = width,
+          height = height,
+          ...
+        )
+        TRUE
+      },
+      error = function(e) {
+        warning(
+          paste0(
+            "Cairo PDF device failed to open (",
+            conditionMessage(e),
+            "); falling back to the native PDF device."
+          ),
+          call. = FALSE
+        )
+        FALSE
+      }
+    ))
+  }
+
+  if (!cairo_opened) {
+    if (!isTRUE(capabilities("cairo"))) {
+      warning(
+        paste0(
+          "Cairo PDF support is unavailable; falling back to the native PDF device. ",
+          "Text rendering may be incomplete on Windows."
+        ),
+        call. = FALSE
+      )
+    }
     grDevices::pdf(
       file = filename,
       width = width,
