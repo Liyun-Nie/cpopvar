@@ -29,6 +29,8 @@
   advertised but fails to open—including hosts that only warn with
   `failed to load cairo DLL` instead of throwing an error (observed on GitHub
   Actions macOS)—promotes that failure and falls back to the native PDF device.
+  Open success is judged relative to the pre-call device so a caller-owned
+  graphics device does not mask a failed Cairo open.
 - Builds grid composites without drawing to an ambient graphics device, then
   renders them through the same cross-platform PDF path.
 - Checks `magick` and `pdftools` before requested raster conversion and reports

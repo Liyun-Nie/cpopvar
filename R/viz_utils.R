@@ -66,6 +66,10 @@ get_plot_dimensions <- function(config, width = NULL, height = NULL, dpi = NULL)
 cpopvar_pdf_device <- function(filename, width, height, ...) {
   cairo_opened <- FALSE
   if (isTRUE(capabilities("cairo"))) {
+    # Compare against the device that was current before cairo_pdf(). Using
+    # `dev.cur() <= 1` alone mis-detects success when a caller-owned device is
+    # already open (GHA macOS UpSet nested-device path).
+    dev_before <- grDevices::dev.cur()
     cairo_opened <- isTRUE(tryCatch(
       {
         withCallingHandlers(
@@ -85,8 +89,8 @@ cpopvar_pdf_device <- function(filename, width, height, ...) {
             }
           }
         )
-        # Refuse a silent no-op: device must actually advance past null device.
-        if (grDevices::dev.cur() <= 1L) {
+        # Refuse a silent no-op: the active device must advance past pre-call.
+        if (identical(grDevices::dev.cur(), dev_before)) {
           stop("cairo_pdf() returned without opening a graphics device", call. = FALSE)
         }
         TRUE
@@ -100,8 +104,9 @@ cpopvar_pdf_device <- function(filename, width, height, ...) {
           ),
           call. = FALSE
         )
-        # Close a half-opened Cairo device if one exists before native fallback.
-        if (grDevices::dev.cur() > 1L) {
+        # Close only a device opened by the failed Cairo attempt; never the
+        # caller's pre-existing device.
+        if (!identical(grDevices::dev.cur(), dev_before)) {
           try(grDevices::dev.off(), silent = TRUE)
         }
         FALSE
